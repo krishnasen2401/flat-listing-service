@@ -1,0 +1,12 @@
+{
+  "title": "Cozy 2BHK in Downtown",
+  "description": "Close to metro and park.",
+  "location": "New York",
+  "price": 1200,
+  "landlordId": "123",
+  "managerId": "321",
+  "tenantIds": ["555", "666"],
+  "preferences": ["smoker", "petFriendly"],
+  "amenities": ["wifi", "gym"],
+  "availableFrom": "2025-05-10"
+}
