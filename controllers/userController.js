@@ -35,25 +35,59 @@ exports.deleteUser = async (req, res) => {
 
 // Get all users (with optional search & filter)
 exports.getUsers = async (req, res) => {
-  try {
-    const { lifestyle, preferences, minBudget, maxBudget, location, name } = req.query;
-
-    const query = {};
-
-    if (lifestyle) query.lifestyle = { $in: lifestyle.split(',') };
-    if (preferences) query.preferences = { $in: preferences.split(',') };
-    if (location) query.location = new RegExp(location, 'i');
-    if (name) query.name = new RegExp(name, 'i');
-
-    if (minBudget || maxBudget) {
-      query.budget = {};
-      if (minBudget) query.budget.$gte = Number(minBudget);
-      if (maxBudget) query.budget.$lte = Number(maxBudget);
+    try {
+      const {
+        lifestyle,
+        preferences,
+        location,
+        minBudget,
+        maxBudget,
+        gender,
+        name,
+        matchMode = 'any' // default is OR logic
+      } = req.query;
+  
+      const query = {};
+  
+      const parseArray = (val) => val ? val.split(',') : [];
+  
+      const applyArrayMatch = (field, values) => {
+        if (values.length === 0) return;
+  
+        if (matchMode === 'all') {
+          // AND logic: user must have all values
+          query[field] = { $all: values };
+        } else {
+          // OR logic: user must have at least one value
+          query[field] = { $in: values };
+        }
+      };
+  
+      applyArrayMatch('lifestyle', parseArray(lifestyle));
+      applyArrayMatch('preferences', parseArray(preferences));
+  
+      if (location) {
+        const locations = parseArray(location);
+        if (matchMode === 'all') {
+          query.location = { $all: locations };
+        } else {
+          query.location = { $in: locations };
+        }
+      }
+  
+      if (gender) query.gender = gender;
+      if (name) query.name = new RegExp(name, 'i');
+  
+      if (minBudget || maxBudget) {
+        query.budget = {};
+        if (minBudget) query.budget.$gte = Number(minBudget);
+        if (maxBudget) query.budget.$lte = Number(maxBudget);
+      }
+  
+      const users = await User.find(query);
+      res.json(users);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
     }
-
-    const users = await User.find(query);
-    res.json(users);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-};
+  };
+  
