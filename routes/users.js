@@ -191,9 +191,9 @@ router.get('/:id', usersController.getUserById);
 
 /**
  * @swagger
- * /api/users/{userId}:
+ * /api/users/by-user-id/{userId}:
  *   get:
- *     summary: Get a user by IAM userId
+ *     summary: Get a user by userId
  *     tags: [Users]
  *     parameters:
  *       - in: path
@@ -211,7 +211,9 @@ router.get('/:id', usersController.getUserById);
  *       404:
  *         description: User not found
  */
-router.get('/:userId', usersController.getUserByUserId);
+
+router.get('/by-user-id/:userId', userController.getUserByUserId);
+
 
 /**
  * @swagger
