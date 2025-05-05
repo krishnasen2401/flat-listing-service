@@ -212,7 +212,7 @@ router.get('/:id', usersController.getUserById);
  *         description: User not found
  */
 
-router.get('/by-user-id/:userId', userController.getUserByUserId);
+router.get('/by-user-id/:userId', usersController.getUserByUserId);
 
 
 /**
