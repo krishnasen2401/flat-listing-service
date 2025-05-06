@@ -1,0 +1,36 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flat-listing-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: flat-listing-service
+  template:
+    metadata:
+      labels:
+        app: flat-listing-service
+    spec:
+      containers:
+      - name: flat-listing-service
+        image: flat-listing-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+        env:
+        - name: MONGO_URI
+          value: "mongodb://mongo:27017/flatlisting"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flat-listing-service
+spec:
+  selector:
+    app: flat-listing-service
+  ports:
+  - protocol: TCP
+    port: 3000
+    targetPort: 3000
+  type: NodePort

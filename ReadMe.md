@@ -18,7 +18,12 @@ docker build -t flat-listing-service:latest . (optional should be built by last 
 minikube docker-env
 minikube -p minikube docker-env --shell powershell | Invoke-Expression
 & minikube -p minikube docker-env | Invoke-Expression
+kubectl apply -f mongo-deployment.yaml
+wait for it deploy
 kubectl apply -f node-deployment.yaml
+
+minikube ip
+take the ip and update env
 
 after deployment 
 check using kubectl.exe get pods or kubectl rollout status deployment/flat-listing-service
