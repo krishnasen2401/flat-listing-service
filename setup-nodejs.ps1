@@ -1,22 +1,28 @@
 # setup-nodejs.ps1
-# 1. Start MongoDB in Docker (exposed on port 27017)
-docker run -d --name mongodb -p 27017:27017 -e MONGO_INITDB_DATABASE=flatlisting mongo:6
 
-# 2. Get host IP for Minikube to use
-$hostIP = (Get-NetIPAddress -AddressFamily IPv4 `
-           | Where-Object {$_.InterfaceAlias -notlike "*Loopback*" -and $_.IPAddress -notlike "169.*"} `
-           | Select-Object -First 1).IPAddress
+<#
+.SYNOPSIS
+    Generates Kubernetes YAML manifest and builds the Node.js Docker image.
+.DESCRIPTION
+    This script creates a `node-deployment.yaml` file with the correct MONGO_URL environment variable
+    placeholder, then builds the Docker image for the flat-listing-service, tagging it as `flat-listing-service:latest`.
+#>
 
-Write-Host "Host IP for MongoDB: $hostIP"
+param(
+    [string]$mongoUrl = "mongodb://<HOST_IP>:27017/flatlisting"
+)
 
-# 3. Replace HOST_IP in template and save as node-deployment.yaml
-$template = @"
+# 1. Generate node-deployment.yaml
+#    This manifest defines a Deployment and Service for the Node.js app.
+#    The Deployment injects the MONGO_URL environment variable into the container.
+Write-Host "Generating node-deployment.yaml..."
+$yaml = @"
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: flat-listing-service
 spec:
-  replicas: 2
+  replicas: 2                     # number of pod replicas
   selector:
     matchLabels:
       app: flat-listing-service
@@ -28,11 +34,12 @@ spec:
       containers:
       - name: flat-listing-service
         image: flat-listing-service:latest
+        imagePullPolicy: IfNotPresent  # use local image when available
         ports:
-        - containerPort: 3000
+        - containerPort: 3000         # container listens on port 3000
         env:
-        - name: MONGO_URL
-          value: "mongodb://$hostIP:27017/flatlisting"
+        - name: MONGO_URL             # MongoDB connection string
+          value: "$mongoUrl"
 ---
 apiVersion: v1
 kind: Service
@@ -43,17 +50,22 @@ spec:
     app: flat-listing-service
   ports:
     - protocol: TCP
-      port: 3000
-      targetPort: 3000
-  type: NodePort
+      port: 3000                   # service port
+      targetPort: 3000             # container port
+  type: NodePort                  # expose as NodePort for external access
 "@
+$yaml | Out-File -FilePath "node-deployment.yaml" -Encoding UTF8
+Write-Host "✔ node-deployment.yaml created."
 
-$template | Set-Content -Path ".\node-deployment.yaml"
+# 2. Build Docker image
+#    Builds the Docker image from the local Dockerfile in this directory.
+Write-Host "Building Docker image 'flat-listing-service:latest'..."
+try {
+    docker build -t flat-listing-service:latest .
+    Write-Host "✔ Docker image 'flat-listing-service:latest' built successfully."
+} catch {
+    Write-Error "Failed to build Docker image: $_"
+    exit 1
+}
 
-# 4. Build Docker image inside Minikube
-minikube image build -t flat-listing-service .
-
-# 5. Apply the deployment
-kubectl apply -f node-deployment.yaml
-
-Write-Host "Node.js app deployed and connected to MongoDB on host ($hostIP:27017)"
+Write-Host "Script complete. You can now apply 'node-deployment.yaml' to your cluster and run your image."
