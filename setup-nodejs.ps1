@@ -56,4 +56,4 @@ minikube image build -t flat-listing-service .
 # 5. Apply the deployment
 kubectl apply -f node-deployment.yaml
 
-Write-Host "`n✅ Node.js app deployed and connected to MongoDB on host ($hostIP:27017)"
+Write-Host "Node.js app deployed and connected to MongoDB on host ($hostIP:27017)"
