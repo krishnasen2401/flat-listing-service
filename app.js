@@ -10,6 +10,8 @@ const swaggerJsdoc = require('swagger-jsdoc');
 dotenv.config();
 const app = express();
 app.use(express.json());
+const cors = require('cors');
+app.use(cors({ origin: 'http://localhost:8889' }));
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
@@ -27,6 +29,11 @@ const swaggerOptions = {
 };
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Expose the Swagger JSON at a specific endpoint
+app.get('/api-docs.json', (req, res) => {
+  res.json(swaggerSpec); // Send the generated Swagger JSON
+});
 
 app.use('/flats', flatsRoute);
 app.use('/api/users', userRoutes);
