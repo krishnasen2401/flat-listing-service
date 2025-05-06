@@ -1,28 +1,17 @@
-# setup-nodejs.ps1
-
-<#
-.SYNOPSIS
-    Generates Kubernetes YAML manifest and builds the Node.js Docker image.
-.DESCRIPTION
-    This script creates a `node-deployment.yaml` file with the correct MONGO_URL environment variable
-    placeholder, then builds the Docker image for the flat-listing-service, tagging it as `flat-listing-service:latest`.
-#>
-
 param(
+    [Parameter(Mandatory=$false)]
     [string]$mongoUrl = "mongodb://<HOST_IP>:27017/flatlisting"
 )
 
 # 1. Generate node-deployment.yaml
-#    This manifest defines a Deployment and Service for the Node.js app.
-#    The Deployment injects the MONGO_URL environment variable into the container.
-Write-Host "Generating node-deployment.yaml..."
+Write-Host "Generating node-deployment.yaml with MongoDB URL: $mongoUrl"
 $yaml = @"
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: flat-listing-service
 spec:
-  replicas: 2                     # number of pod replicas
+  replicas: 1                     # number of pod replicas
   selector:
     matchLabels:
       app: flat-listing-service
@@ -34,11 +23,11 @@ spec:
       containers:
       - name: flat-listing-service
         image: flat-listing-service:latest
-        imagePullPolicy: IfNotPresent  # use local image when available
+        imagePullPolicy: IfNotPresent  # prefer local image
         ports:
-        - containerPort: 3000         # container listens on port 3000
+        - containerPort: 3000         # container listens on 3000
         env:
-        - name: MONGO_URL             # MongoDB connection string
+        - name: MONGO_URL             # inject MongoDB connection string
           value: "$mongoUrl"
 ---
 apiVersion: v1
@@ -50,22 +39,20 @@ spec:
     app: flat-listing-service
   ports:
     - protocol: TCP
-      port: 3000                   # service port
+      port: 3000                   # exposed service port
       targetPort: 3000             # container port
-  type: NodePort                  # expose as NodePort for external access
+  type: NodePort                  # NodePort for external access
 "@
 $yaml | Out-File -FilePath "node-deployment.yaml" -Encoding UTF8
-Write-Host "✔ node-deployment.yaml created."
+Write-Host "node-deployment.yaml created."
 
-# 2. Build Docker image
-#    Builds the Docker image from the local Dockerfile in this directory.
+# 2. Build Docker image locally
 Write-Host "Building Docker image 'flat-listing-service:latest'..."
-try {
-    docker build -t flat-listing-service:latest .
-    Write-Host "✔ Docker image 'flat-listing-service:latest' built successfully."
-} catch {
-    Write-Error "Failed to build Docker image: $_"
+docker build -t flat-listing-service:latest .
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Docker build failed with exit code $LASTEXITCODE."
     exit 1
 }
+Write-Host "Docker image built successfully."
 
-Write-Host "Script complete. You can now apply 'node-deployment.yaml' to your cluster and run your image."
+Write-Host "Script complete. You can now apply 'node-deployment.yaml' to your cluster."
