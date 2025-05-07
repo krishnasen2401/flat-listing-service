@@ -10,7 +10,7 @@ const cors = require('cors');
 dotenv.config();
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: 'http://localhost:8889' }));
+app.use(cors({ origin: 'http://gateway-service:8889' }));
 
 // Retry logic for MongoDB connection
 async function connectWithRetry(retries = 10, delay = 5000) {
